@@ -60,8 +60,14 @@ export function tracenticMiddleware(
       }
     }
 
-    // Restore on finish (always, even if the handler throws)
+    // Restore on finish (always, even if the handler throws). Both 'finish'
+    // and 'close' can fire — the guard ensures we only restore once so we
+    // don't blow away values written by a later concurrent request that
+    // overlapped this one.
+    let restored = false;
     const restore = () => {
+      if (restored) return;
+      restored = true;
       for (const [key, prev] of Object.entries(snapshot)) {
         if (prev != null) {
           global.set(key, prev);
