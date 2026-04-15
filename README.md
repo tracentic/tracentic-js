@@ -24,15 +24,29 @@ const tracentic = createTracentic({
 
 ## Quick start
 
+Create a Tracentic instance once at startup, in its own module, and import it from anywhere else in your app — this avoids re-initializing the exporter and keeps configuration in one place.
+
 ```typescript
+// src/tracentic.ts — the single source of truth for your SDK instance
 import { createTracentic } from 'tracentic';
 
-const tracentic = createTracentic({
+export const tracentic = createTracentic({
   apiKey: 'your-api-key',
   endpoint: 'https://tracentic.dev',
   serviceName: 'my-service',
   environment: 'production',
+  // Required for cost tracking. Without this, llm.cost.total_usd is
+  // omitted and the SDK warns once per unpriced model.
+  customPricing: {
+    'claude-sonnet-4-20250514': { inputCostPerMillion: 3.0, outputCostPerMillion: 15.0 },
+    'gpt-4o': { inputCostPerMillion: 2.5, outputCostPerMillion: 10.0 },
+  },
 });
+```
+
+```typescript
+// src/agents/summarizer.ts — import the shared instance anywhere
+import { tracentic } from '../tracentic';
 
 const scope = tracentic.begin('summarize', {
   attributes: { user_id: 'user-123' },
@@ -108,6 +122,8 @@ tracentic.recordSpan({
 
 ### Custom pricing
 
+`customPricing` is required for cost tracking. The SDK does not ship with built-in pricing because model prices change frequently and vary by contract. If a span has token data but no matching pricing entry, `llm.cost.total_usd` is omitted and the SDK logs a warning once per model.
+
 ```typescript
 const tracentic = createTracentic({
   apiKey: '...',
@@ -117,8 +133,6 @@ const tracentic = createTracentic({
   },
 });
 ```
-
-Cost is calculated automatically when a matching pricing entry exists and both token counts are present.
 
 ### Global attributes
 
@@ -164,18 +178,22 @@ Tracentic does not propagate scope IDs automatically — you pass them explicitl
 
 For cross-service linking to work, both services must integrate the Tracentic SDK (or implement the OTLP JSON ingest API directly) and their API keys must belong to the **same tenant**. Spans from different tenants are isolated and cannot be linked.
 
+Use the exported `TRACENTIC_SCOPE_HEADER` constant on both ends rather than a string literal — typos silently break linking.
+
 **Via HTTP header:**
 
 ```typescript
+import { TRACENTIC_SCOPE_HEADER } from 'tracentic';
+
 // Service A — outgoing request
 const scope = tracentic.begin('gateway-handler');
 const res = await fetch('https://worker.internal/process', {
-  headers: { 'x-tracentic-scope-id': scope.id },
+  headers: { [TRACENTIC_SCOPE_HEADER]: scope.id },
 });
 
 // Service B — incoming request
 app.post('/process', (req, res) => {
-  const parentScopeId = req.headers['x-tracentic-scope-id'];
+  const parentScopeId = req.headers[TRACENTIC_SCOPE_HEADER];
   const linked = tracentic.begin('worker', { parentScopeId });
 });
 ```
@@ -183,27 +201,47 @@ app.post('/process', (req, res) => {
 **Via message queue:**
 
 ```typescript
+import { TRACENTIC_SCOPE_HEADER } from 'tracentic';
+
 // Producer
 const scope = tracentic.begin('order-processor');
 await queue.send({
   body: payload,
-  properties: { 'tracentic-scope-id': scope.id },
+  properties: { [TRACENTIC_SCOPE_HEADER]: scope.id },
 });
 
 // Consumer
 queue.on('message', (msg) => {
-  const parentScopeId = msg.properties['tracentic-scope-id'];
+  const parentScopeId = msg.properties[TRACENTIC_SCOPE_HEADER];
   const linked = tracentic.begin('fulfillment', { parentScopeId });
 });
 ```
 
 ### Shutdown
 
-Flush buffered spans before process exit:
+Buffered spans are flushed automatically on `beforeExit`, `SIGTERM`, and `SIGINT`, so you don't need to call `shutdown()` in normal use. Call it explicitly only if you want to flush at a specific point (e.g. in short-lived scripts that exit via `process.exit()`, which skips `beforeExit`):
 
 ```typescript
 await tracentic.shutdown();
 ```
+
+### Serverless (AWS Lambda, Vercel, Cloudflare Workers)
+
+Serverless runtimes freeze or kill the process between invocations, so the automatic exit handlers may never fire and any spans still in the buffer are lost. **Always `await tracentic.shutdown()` before your handler returns:**
+
+```typescript
+export const handler = async (event) => {
+  try {
+    const result = await doWork(event);
+    return result;
+  } finally {
+    // Flush before the runtime freezes the process
+    await tracentic.shutdown();
+  }
+};
+```
+
+For AWS Lambda specifically, calling `shutdown()` in `finally` flushes synchronously before Lambda freezes the container. Without this, you will see spans appear inconsistently — only when a container happens to be reused and the next invocation triggers a flush.
 
 ## Configuration reference
 

@@ -1,6 +1,6 @@
 {
   "name": "tracentic",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Tracentic SDK for Node.js — LLM observability with scoped tracing and OTLP export",
   "license": "Apache-2.0",
   "author": "Tracentic",

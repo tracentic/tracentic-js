@@ -3,6 +3,7 @@ export {
   createTracentic,
   configure,
   getTracentic,
+  TRACENTIC_SCOPE_HEADER,
   type ITracentic,
 } from './tracentic.js';
 

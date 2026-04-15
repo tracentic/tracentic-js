@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-15
+
+### Added
+- `TRACENTIC_SCOPE_HEADER` constant for cross-service scope-ID propagation. Use this in place of the literal `"x-tracentic-scope-id"` string so a typo on either end can't silently break linking.
+- One-time `console.warn` when a span has token data but no matching `customPricing` entry — surfaces missing cost configuration that previously failed silently. Emitted at most once per unique model.
+- `console.info` when `createTracentic` / `configure` is called without an `apiKey` — clarifies that spans are created locally but not exported.
+- README guidance for serverless runtimes (AWS Lambda, Vercel, Cloudflare Workers) explaining why `beforeExit` / `SIGTERM` may not fire and how to `await tracentic.shutdown()` from `finally`.
+- README quick start now demonstrates the recommended standalone-module pattern (`src/tracentic.ts` exporting the instance) for sharing a single SDK instance across an app.
+
+### Changed
+- Default `endpoint` is now `https://tracentic.dev` (previously `https://ingest.tracentic.dev`). Any caller passing an explicit `endpoint` is unaffected.
+- README clarifies that `customPricing` is required for cost tracking — there are no built-in pricing defaults — and that the SDK warns when it's missing.
+- README quick start now includes `customPricing` so the expected configuration shape is visible by default.
+
 ## [0.1.0] - 2026-04-15
 
 Initial public release.
@@ -22,5 +36,6 @@ Initial public release.
 - Dual ESM/CommonJS build with full TypeScript type definitions.
 - Node.js 18+ support.
 
-[Unreleased]: https://github.com/tracentic/tracentic-js/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/tracentic/tracentic-js/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/tracentic/tracentic-js/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/tracentic/tracentic-js/releases/tag/v0.1.0

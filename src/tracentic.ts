@@ -49,6 +49,13 @@ export interface ITracentic {
   shutdown(): Promise<void>;
 }
 
+/**
+ * Header / property name used to propagate a parent scope ID across
+ * services. Use this constant rather than hard-coding the string so
+ * a typo on either end can't silently break cross-service linking.
+ */
+export const TRACENTIC_SCOPE_HEADER = 'x-tracentic-scope-id';
+
 // ── Resolved internal options ──────────────────────────────────────
 
 interface ResolvedOptions {
@@ -66,6 +73,7 @@ export class TracenticClient implements ITracentic {
   private readonly _merger: AttributeMerger;
   private readonly _options: ResolvedOptions;
   private readonly _exporter: OtlpJsonExporter | undefined;
+  private readonly _pricingWarned = new Set<string>();
   private _exitHandlerRegistered = false;
 
   /** @internal */
@@ -241,19 +249,30 @@ export class TracenticClient implements ITracentic {
     if (
       span.model == null ||
       span.inputTokens == null ||
-      span.outputTokens == null ||
-      !this._options.customPricing
+      span.outputTokens == null
     )
       return;
 
-    const pricing = this._options.customPricing[span.model];
-    if (!pricing) return;
+    const pricing = this._options.customPricing?.[span.model];
+    if (!pricing) {
+      this._warnMissingPricing(span.model);
+      return;
+    }
 
     const cost =
       (span.inputTokens / 1_000_000) * pricing.inputCostPerMillion +
       (span.outputTokens / 1_000_000) * pricing.outputCostPerMillion;
 
     attrs['llm.cost.total_usd'] = cost;
+  }
+
+  private _warnMissingPricing(model: string): void {
+    if (this._pricingWarned.has(model)) return;
+    this._pricingWarned.add(model);
+    console.warn(
+      `[tracentic] No customPricing entry for model "${model}" — llm.cost.total_usd will be omitted. ` +
+        `Pass customPricing to createTracentic() to enable cost tracking.`,
+    );
   }
 
   private _registerExitHandler(): void {
@@ -297,7 +316,7 @@ function buildSpanName(
 export function createTracentic(options: TracenticOptions = {}): ITracentic {
   const resolved: ResolvedOptions = {
     serviceName: options.serviceName ?? 'unknown-service',
-    endpoint: options.endpoint ?? 'https://ingest.tracentic.dev',
+    endpoint: options.endpoint ?? 'https://tracentic.dev',
     environment: options.environment ?? 'production',
     customPricing: options.customPricing
       ? { ...options.customPricing }
@@ -324,6 +343,11 @@ export function createTracentic(options: TracenticOptions = {}): ITracentic {
       serviceName: resolved.serviceName,
       environment: resolved.environment,
     });
+  } else {
+    console.info(
+      '[tracentic] No apiKey provided — spans will be created locally but ' +
+        'not exported. Pass apiKey to createTracentic() to send spans to Tracentic.',
+    );
   }
 
   return new TracenticClient(globalContext, resolved, exporter);
