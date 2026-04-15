@@ -10,6 +10,18 @@ npm install tracentic
 
 Requires **Node.js 18+**. Ships with ESM and CommonJS builds, plus full TypeScript type definitions.
 
+## Endpoint
+
+Point the SDK at the Tracentic ingestion endpoint by passing `endpoint: 'https://tracentic.dev'` to `createTracentic` (or `configure`). This is the hosted service URL that receives spans over OTLP/HTTP JSON — use it unless you're running a self-hosted Tracentic deployment, in which case pass your own URL.
+
+```typescript
+const tracentic = createTracentic({
+  apiKey: 'your-api-key',
+  endpoint: 'https://tracentic.dev',
+  serviceName: 'my-service',
+});
+```
+
 ## Quick start
 
 ```typescript
@@ -17,6 +29,7 @@ import { createTracentic } from 'tracentic';
 
 const tracentic = createTracentic({
   apiKey: 'your-api-key',
+  endpoint: 'https://tracentic.dev',
   serviceName: 'my-service',
   environment: 'production',
 });
@@ -198,7 +211,7 @@ await tracentic.shutdown();
 |--------|---------|-------------|
 | `apiKey` | `undefined` | API key. If omitted, spans are created locally but not exported |
 | `serviceName` | `"unknown-service"` | Service identifier in the dashboard |
-| `endpoint` | `"https://ingest.tracentic.dev"` | OTLP ingestion endpoint |
+| `endpoint` | `"https://tracentic.dev"` | Tracentic ingestion endpoint. Pass `https://tracentic.dev` for the hosted service. Override only for self-hosted deployments. |
 | `environment` | `"production"` | Deployment environment tag |
 | `customPricing` | `undefined` | Model pricing for cost calculation |
 | `globalAttributes` | `undefined` | Static attributes on every span |
