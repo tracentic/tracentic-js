@@ -180,6 +180,8 @@ TracenticGlobalContext.current.remove("deploy_id");
 
 `TracenticGlobalContext` is process-wide (not async-local), so values set from one request's handler will leak into every other request running concurrently. For ambient per-request data (user ID, tenant, request ID), use the Express middleware below instead.
 
+`TracenticGlobalContext` is process-wide (not async-local), so values set from one request's handler will leak into every other request running concurrently. For ambient per-request data (user ID, tenant, request ID), use the Express middleware below instead.
+
 ### Express middleware
 
 Inject per-request attributes for the duration of each HTTP request:
