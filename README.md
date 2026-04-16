@@ -136,26 +136,41 @@ const tracentic = createTracentic({
 
 ### Global attributes
 
-Static attributes applied to every span:
+Pass `globalAttributes` to `createTracentic()` to tag every span this service emits with the same static values — region, deployment version, owning team, cluster name. They're resolved once at startup and merged into every span without per-call bookkeeping:
 
 ```typescript
 const tracentic = createTracentic({
   apiKey: '...',
+  serviceName: 'my-service',
+  environment: 'production',
   globalAttributes: {
     region: 'us-east-1',
     version: '2.1.0',
+    team: 'platform',
   },
 });
+
+// Every span this service emits now carries region, version, team.
 ```
 
-Dynamic attributes can be set/removed at runtime:
+Scope and per-span attributes override global values on key collision, so `globalAttributes` is the right layer for defaults you want everywhere unless something more specific says otherwise:
+
+```typescript
+const scope = tracentic.begin('request', { attributes: { region: 'us-west-2' } });
+// Spans in this scope carry region="us-west-2" (scope wins over global).
+```
+
+For values that change after startup — a deploy ID rotated by a background job, a maintenance-mode flag — use `TracenticGlobalContext` to set/remove entries at runtime:
 
 ```typescript
 import { TracenticGlobalContext } from 'tracentic';
 
 TracenticGlobalContext.current.set('deploy_id', 'deploy-abc');
+// ... spans recorded now include deploy_id ...
 TracenticGlobalContext.current.remove('deploy_id');
 ```
+
+`TracenticGlobalContext` is process-wide (not async-local), so values set from one request's handler will leak into every other request running concurrently. For ambient per-request data (user ID, tenant, request ID), use the Express middleware below instead.
 
 ### Express middleware
 
