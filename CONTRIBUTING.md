@@ -5,6 +5,7 @@ Thanks for your interest in improving the Tracentic JS SDK. This guide covers ho
 ## Getting started
 
 Prerequisites:
+
 - Node.js 18 or newer
 - npm (ships with Node)
 - git
@@ -22,28 +23,29 @@ npm test
 ## Reporting bugs & requesting features
 
 Open an issue on GitHub. For bugs, include:
+
 - SDK version
 - Node.js version and module system (ESM or CommonJS)
 - Minimal reproduction
 - What you expected vs. what happened
 
-For features, describe the use case first — the shape of the API usually follows from the problem.
+For features, describe the use case first - the shape of the API usually follows from the problem.
 
 ## Making a change
 
 1. Fork and create a branch off `main`.
-2. Keep the change focused — one logical change per PR.
+2. Keep the change focused - one logical change per PR.
 3. Add or update tests under `test/`. New public behavior needs a test.
 4. Run the full test suite: `npm test`.
 5. Type-check: `npm run typecheck`.
 6. Update `CHANGELOG.md` under `[Unreleased]` if the change is user-visible.
 7. Update `README.md` if you add or change a public API surface.
-8. Open a PR with a short description of **what** and **why** — the diff shows the how.
+8. Open a PR with a short description of **what** and **why** - the diff shows the how.
 
 ## Code style
 
 - Follow existing conventions in the file you're editing.
-- TypeScript `strict` mode is on — honor it. No `any` without justification.
+- TypeScript `strict` mode is on - honor it. No `any` without justification.
 - Keep exports minimal: only add to the public surface (`src/index.ts`, `src/middleware/*`) what consumers actually need.
 - Don't add comments that restate what the code does. Comments should explain non-obvious **why**.
 - Both ESM and CommonJS builds must work. If you add a new entry point, update `exports` in `package.json` and the `tsup` config.

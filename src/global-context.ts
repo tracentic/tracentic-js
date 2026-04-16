@@ -2,7 +2,7 @@
  * Store for global attributes applied to every span.
  * Accessible via the static current accessor or passed directly.
  *
- * In Node.js there is no threading — a plain Map is sufficient.
+ * In Node.js there is no threading - a plain Map is sufficient.
  * Copy-on-read via getAll() prevents callers from mutating internal state.
  */
 export class TracenticGlobalContext {
@@ -12,8 +12,8 @@ export class TracenticGlobalContext {
   static get current(): TracenticGlobalContext {
     if (!TracenticGlobalContext._current) {
       throw new Error(
-        'TracenticGlobalContext has not been initialized. ' +
-          'Call createTracentic() or configure() first.',
+        "TracenticGlobalContext has not been initialized. " +
+          "Call createTracentic() or configure() first.",
       );
     }
     return TracenticGlobalContext._current;

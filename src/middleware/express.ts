@@ -1,5 +1,5 @@
-import type { Request, Response, NextFunction } from 'express';
-import { TracenticGlobalContext } from '../global-context.js';
+import type { Request, Response, NextFunction } from "express";
+import { TracenticGlobalContext } from "../global-context.js";
 
 /**
  * Options for the Tracentic Express middleware.
@@ -61,7 +61,7 @@ export function tracenticMiddleware(
     }
 
     // Restore on finish (always, even if the handler throws). Both 'finish'
-    // and 'close' can fire — the guard ensures we only restore once so we
+    // and 'close' can fire - the guard ensures we only restore once so we
     // don't blow away values written by a later concurrent request that
     // overlapped this one.
     let restored = false;
@@ -77,8 +77,8 @@ export function tracenticMiddleware(
       }
     };
 
-    res.on('finish', restore);
-    res.on('close', restore);
+    res.on("finish", restore);
+    res.on("close", restore);
 
     next();
   };

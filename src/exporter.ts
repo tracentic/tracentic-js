@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes } from "node:crypto";
 
 // ── OTLP JSON DTOs ─────────────────────────────────────────────────
 
@@ -43,13 +43,13 @@ export interface ExportableSpan {
   startedAt: Date;
   endedAt: Date;
   attributes: Record<string, unknown>;
-  status: 'ok' | 'error';
+  status: "ok" | "error";
   errorMessage?: string;
 }
 
 // ── Exporter ───────────────────────────────────────────────────────
 
-const SDK_VERSION = '0.1.0';
+const SDK_VERSION = "0.1.0";
 
 export class OtlpJsonExporter {
   private readonly _endpoint: string;
@@ -73,7 +73,7 @@ export class OtlpJsonExporter {
     serviceName: string;
     environment: string;
   }) {
-    this._endpoint = `${opts.endpoint.replace(/\/+$/, '')}/v1/ingest`;
+    this._endpoint = `${opts.endpoint.replace(/\/+$/, "")}/v1/ingest`;
     this._apiKey = opts.apiKey;
     this._serviceName = opts.serviceName;
     this._serviceVersion = SDK_VERSION;
@@ -127,14 +127,14 @@ export class OtlpJsonExporter {
         {
           resource: {
             attributes: [
-              attr('service.name', this._serviceName),
-              attr('service.version', this._serviceVersion),
-              attr('deployment.environment', this._environment),
+              attr("service.name", this._serviceName),
+              attr("service.version", this._serviceVersion),
+              attr("deployment.environment", this._environment),
             ],
           },
           scopeSpans: [
             {
-              scope: { name: 'Tracentic', version: SDK_VERSION },
+              scope: { name: "Tracentic", version: SDK_VERSION },
               spans: otlpSpans,
             },
           ],
@@ -144,10 +144,10 @@ export class OtlpJsonExporter {
 
     try {
       const response = await fetch(this._endpoint, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'content-type': 'application/json',
-          'x-tracentic-api-key': this._apiKey,
+          "content-type": "application/json",
+          "x-tracentic-api-key": this._apiKey,
         },
         body: JSON.stringify(request),
         signal: AbortSignal.timeout(5000),
@@ -155,7 +155,7 @@ export class OtlpJsonExporter {
       // Drain response body to release the connection
       await response.text();
     } catch {
-      // Fire-and-forget — export failures are silently ignored
+      // Fire-and-forget - export failures are silently ignored
     }
 
     // If there are still items in the queue, flush again
@@ -165,8 +165,8 @@ export class OtlpJsonExporter {
   }
 
   private _convertSpan(span: ExportableSpan): OtlpSpan {
-    const traceId = randomBytes(16).toString('base64');
-    const spanId = randomBytes(8).toString('base64');
+    const traceId = randomBytes(16).toString("base64");
+    const spanId = randomBytes(8).toString("base64");
 
     const startNano = BigInt(span.startedAt.getTime()) * 1_000_000n;
     const endNano = BigInt(span.endedAt.getTime()) * 1_000_000n;
@@ -185,7 +185,7 @@ export class OtlpJsonExporter {
       endTimeUnixNano: endNano.toString(),
       attributes: attributes.length > 0 ? attributes : undefined,
       status: {
-        code: span.status === 'error' ? 2 : 1,
+        code: span.status === "error" ? 2 : 1,
         message: span.errorMessage,
       },
     };
@@ -193,16 +193,16 @@ export class OtlpJsonExporter {
 }
 
 function attr(key: string, value: unknown): OtlpAttribute {
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return { key, value: { stringValue: value } };
   }
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     if (Number.isInteger(value)) {
       return { key, value: { intValue: value.toString() } };
     }
     return { key, value: { doubleValue: value } };
   }
-  if (typeof value === 'boolean') {
+  if (typeof value === "boolean") {
     return { key, value: { boolValue: value } };
   }
   return { key, value: { stringValue: String(value) } };
