@@ -1,10 +1,10 @@
-import { TracenticScope } from './scope.js';
-import type { TracenticSpan } from './span.js';
-import type { TracenticOptions, ModelPricing } from './options.js';
-import { AttributeLimits } from './options.js';
-import { TracenticGlobalContext } from './global-context.js';
-import { AttributeMerger } from './attribute-merger.js';
-import { OtlpJsonExporter, type ExportableSpan } from './exporter.js';
+import { TracenticScope } from "./scope.js";
+import type { TracenticSpan } from "./span.js";
+import type { TracenticOptions, ModelPricing } from "./options.js";
+import { AttributeLimits } from "./options.js";
+import { TracenticGlobalContext } from "./global-context.js";
+import { AttributeMerger } from "./attribute-merger.js";
+import { OtlpJsonExporter, type ExportableSpan } from "./exporter.js";
 
 /**
  * Public interface for the Tracentic SDK.
@@ -36,11 +36,7 @@ export interface ITracentic {
   recordSpan(span: TracenticSpan): void;
 
   /** Records an LLM span that resulted in an error, with scope. */
-  recordError(
-    scope: TracenticScope,
-    span: TracenticSpan,
-    error: Error,
-  ): void;
+  recordError(scope: TracenticScope, span: TracenticSpan, error: Error): void;
 
   /** Records an LLM span that resulted in an error, without scope. */
   recordError(span: TracenticSpan, error: Error): void;
@@ -54,7 +50,7 @@ export interface ITracentic {
  * services. Use this constant rather than hard-coding the string so
  * a typo on either end can't silently break cross-service linking.
  */
-export const TRACENTIC_SCOPE_HEADER = 'x-tracentic-scope-id';
+export const TRACENTIC_SCOPE_HEADER = "x-tracentic-scope-id";
 
 // ── Resolved internal options ──────────────────────────────────────
 
@@ -124,11 +120,7 @@ export class TracenticClient implements ITracentic {
     }
   }
 
-  recordError(
-    scope: TracenticScope,
-    span: TracenticSpan,
-    error: Error,
-  ): void;
+  recordError(scope: TracenticScope, span: TracenticSpan, error: Error): void;
   recordError(span: TracenticSpan, error: Error): void;
   recordError(
     scopeOrSpan: TracenticScope | TracenticSpan,
@@ -172,7 +164,7 @@ export class TracenticClient implements ITracentic {
       startedAt: span.startedAt,
       endedAt: span.endedAt,
       attributes: attrs,
-      status: 'ok',
+      status: "ok",
     };
 
     this._exporter?.enqueue(exportable);
@@ -188,14 +180,14 @@ export class TracenticClient implements ITracentic {
 
     this._setLlmAttributes(attrs, span);
     this._setScopeAttributes(attrs, scope);
-    attrs['llm.error.type'] = error.name;
+    attrs["llm.error.type"] = error.name;
 
     const exportable: ExportableSpan = {
       name: buildSpanName(span.provider, span.operationType),
       startedAt: span.startedAt,
       endedAt: span.endedAt,
       attributes: attrs,
-      status: 'error',
+      status: "error",
       errorMessage: error.message,
     };
 
@@ -206,19 +198,18 @@ export class TracenticClient implements ITracentic {
     attrs: Record<string, unknown>,
     span: TracenticSpan,
   ): void {
-    if (span.provider != null) attrs['llm.provider'] = span.provider;
-    if (span.model != null) attrs['llm.request.model'] = span.model;
+    if (span.provider != null) attrs["llm.provider"] = span.provider;
+    if (span.model != null) attrs["llm.request.model"] = span.model;
     if (span.operationType != null)
-      attrs['llm.request.type'] = span.operationType;
+      attrs["llm.request.type"] = span.operationType;
     if (span.inputTokens != null)
-      attrs['llm.usage.input_tokens'] = span.inputTokens;
+      attrs["llm.usage.input_tokens"] = span.inputTokens;
     if (span.outputTokens != null)
-      attrs['llm.usage.output_tokens'] = span.outputTokens;
+      attrs["llm.usage.output_tokens"] = span.outputTokens;
     if (span.inputTokens != null && span.outputTokens != null)
-      attrs['llm.usage.total_tokens'] =
-        span.inputTokens + span.outputTokens;
+      attrs["llm.usage.total_tokens"] = span.inputTokens + span.outputTokens;
 
-    attrs['llm.duration_ms'] = Math.round(
+    attrs["llm.duration_ms"] = Math.round(
       span.endedAt.getTime() - span.startedAt.getTime(),
     );
   }
@@ -228,13 +219,13 @@ export class TracenticClient implements ITracentic {
     scope: TracenticScope | undefined,
   ): void {
     if (!scope) return;
-    attrs['tracentic.scope.id'] = scope.id;
-    attrs['tracentic.scope.name'] = scope.name;
-    attrs['tracentic.scope.started_at'] = scope.startedAt.toISOString();
+    attrs["tracentic.scope.id"] = scope.id;
+    attrs["tracentic.scope.name"] = scope.name;
+    attrs["tracentic.scope.started_at"] = scope.startedAt.toISOString();
     if (scope.parentId != null)
-      attrs['tracentic.scope.parent_id'] = scope.parentId;
+      attrs["tracentic.scope.parent_id"] = scope.parentId;
     if (scope.correlationId != null)
-      attrs['tracentic.scope.correlation_id'] = scope.correlationId;
+      attrs["tracentic.scope.correlation_id"] = scope.correlationId;
   }
 
   /**
@@ -242,10 +233,7 @@ export class TracenticClient implements ITracentic {
    * Model, InputTokens, OutputTokens, and a matching CustomPricing entry.
    * Partial data produces no cost rather than a misleading estimate.
    */
-  private _setCost(
-    attrs: Record<string, unknown>,
-    span: TracenticSpan,
-  ): void {
+  private _setCost(attrs: Record<string, unknown>, span: TracenticSpan): void {
     if (
       span.model == null ||
       span.inputTokens == null ||
@@ -263,14 +251,14 @@ export class TracenticClient implements ITracentic {
       (span.inputTokens / 1_000_000) * pricing.inputCostPerMillion +
       (span.outputTokens / 1_000_000) * pricing.outputCostPerMillion;
 
-    attrs['llm.cost.total_usd'] = cost;
+    attrs["llm.cost.total_usd"] = cost;
   }
 
   private _warnMissingPricing(model: string): void {
     if (this._pricingWarned.has(model)) return;
     this._pricingWarned.add(model);
     console.warn(
-      `[tracentic] No customPricing entry for model "${model}" — llm.cost.total_usd will be omitted. ` +
+      `[tracentic] No customPricing entry for model "${model}" - llm.cost.total_usd will be omitted. ` +
         `Pass customPricing to createTracentic() to enable cost tracking.`,
     );
   }
@@ -283,9 +271,9 @@ export class TracenticClient implements ITracentic {
       void this.shutdown();
     };
 
-    process.on('beforeExit', flush);
-    process.on('SIGTERM', flush);
-    process.on('SIGINT', flush);
+    process.on("beforeExit", flush);
+    process.on("SIGTERM", flush);
+    process.on("SIGINT", flush);
   }
 }
 
@@ -295,7 +283,7 @@ function buildSpanName(
 ): string {
   if (provider && operationType) return `llm.${provider}.${operationType}`;
   if (provider) return `llm.${provider}`;
-  return 'llm.call';
+  return "llm.call";
 }
 
 // ── Factory ────────────────────────────────────────────────────────
@@ -315,9 +303,9 @@ function buildSpanName(
  */
 export function createTracentic(options: TracenticOptions = {}): ITracentic {
   const resolved: ResolvedOptions = {
-    serviceName: options.serviceName ?? 'unknown-service',
-    endpoint: options.endpoint ?? 'https://tracentic.dev',
-    environment: options.environment ?? 'production',
+    serviceName: options.serviceName ?? "unknown-service",
+    endpoint: options.endpoint ?? "https://tracentic.dev",
+    environment: options.environment ?? "production",
     customPricing: options.customPricing
       ? { ...options.customPricing }
       : undefined,
@@ -345,8 +333,8 @@ export function createTracentic(options: TracenticOptions = {}): ITracentic {
     });
   } else {
     console.info(
-      '[tracentic] No apiKey provided — spans will be created locally but ' +
-        'not exported. Pass apiKey to createTracentic() to send spans to Tracentic.',
+      "[tracentic] No apiKey provided - spans will be created locally but " +
+        "not exported. Pass apiKey to createTracentic() to send spans to Tracentic.",
     );
   }
 
@@ -382,7 +370,7 @@ export function configure(options: TracenticOptions): ITracentic {
 export function getTracentic(): ITracentic {
   if (!_singleton) {
     throw new Error(
-      'Tracentic has not been configured. Call configure() first.',
+      "Tracentic has not been configured. Call configure() first.",
     );
   }
   return _singleton;

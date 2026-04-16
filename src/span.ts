@@ -26,7 +26,7 @@ export interface TracenticSpan {
   operationType?: string;
 
   /**
-   * Call-specific attributes. These have the highest merge priority —
+   * Call-specific attributes. These have the highest merge priority -
    * they override scope and global attributes on key collision.
    */
   attributes?: Record<string, unknown>;

@@ -1,8 +1,8 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID } from "node:crypto";
 
 /**
  * Represents a logical operation scope. Pass to recordSpan to
- * associate spans with this operation. Fire and forget — no
+ * associate spans with this operation. Fire and forget - no
  * disposal or end call required.
  *
  * Create a root scope: tracentic.begin("name")
@@ -26,7 +26,7 @@ export class TracenticScope {
 
   /**
    * Attributes associated with this scope. Merged into every span
-   * that references this scope — overrides global attributes on key
+   * that references this scope - overrides global attributes on key
    * collision. Overridden by span-level attributes.
    */
   readonly attributes: Readonly<Record<string, unknown>>;
@@ -38,7 +38,7 @@ export class TracenticScope {
     correlationId?: string,
     parentId?: string,
   ) {
-    this.id = randomUUID().replace(/-/g, '');
+    this.id = randomUUID().replace(/-/g, "");
     this.name = name;
     this.correlationId = correlationId;
     this.parentId = parentId;
