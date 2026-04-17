@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-17
+
+### Added
+
+- `debug` option for verbose diagnostic logging. When enabled, the SDK logs span enqueue, batch flush, export success, and shutdown lifecycle events to `console.debug`. Warnings and errors (export failures, queue overflow) are always emitted regardless of this flag.
+- `exportTimeoutMs` option to configure the per-request timeout for OTLP exports (default: 30 seconds, previously hardcoded to 5 seconds).
+- Export error logging - HTTP failures and network errors are now logged via `console.warn` instead of being silently swallowed.
+- Queue overflow warning when spans are dropped due to a full export queue.
+- README sections for debugging, logging, and export timeout configuration.
+
+### Changed
+
+- Default OTLP export timeout increased from 5 seconds to 30 seconds, matching the .NET SDK. This prevents silent span loss in higher-latency environments such as CI runners and serverless cold starts.
+- All SDK log output is now routed through an internal logger module with a consistent `[tracentic]` prefix.
+
 ## [0.2.0] - 2026-04-15
 
 ### Added
@@ -39,6 +54,7 @@ Initial public release.
 - Dual ESM/CommonJS build with full TypeScript type definitions.
 - Node.js 18+ support.
 
-[Unreleased]: https://github.com/tracentic/tracentic-js/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/tracentic/tracentic-js/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/tracentic/tracentic-js/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/tracentic/tracentic-js/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/tracentic/tracentic-js/releases/tag/v0.1.0

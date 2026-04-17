@@ -50,7 +50,7 @@ export interface ExportableSpan {
 
 // ── Exporter ───────────────────────────────────────────────────────
 
-const SDK_VERSION = "0.1.0";
+const SDK_VERSION = "0.3.0";
 
 export class OtlpJsonExporter {
   private readonly _endpoint: string;
