@@ -92,6 +92,19 @@ export interface TracenticOptions {
    * payloads. Defaults are aligned with platform maximums.
    */
   attributeLimits?: AttributeLimitsOptions;
+
+  /**
+   * Per-request timeout in milliseconds for OTLP exports.
+   * Default: 30000 (30 seconds).
+   */
+  exportTimeoutMs?: number;
+
+  /**
+   * Enable verbose diagnostic logging. When true, the SDK logs
+   * detailed information about span recording, batching, export
+   * requests, and shutdown. Default: false.
+   */
+  debug?: boolean;
 }
 
 function clamp(value: number, min: number, max: number): number {

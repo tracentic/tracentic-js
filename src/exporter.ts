@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import * as log from "./logger.js";
 
 // ── OTLP JSON DTOs ─────────────────────────────────────────────────
 
@@ -57,6 +58,7 @@ export class OtlpJsonExporter {
   private readonly _serviceName: string;
   private readonly _serviceVersion: string;
   private readonly _environment: string;
+  private readonly _exportTimeoutMs: number;
 
   private readonly _queue: ExportableSpan[] = [];
   private _timer: ReturnType<typeof setInterval> | undefined;
@@ -72,12 +74,14 @@ export class OtlpJsonExporter {
     apiKey: string;
     serviceName: string;
     environment: string;
+    exportTimeoutMs?: number;
   }) {
     this._endpoint = `${opts.endpoint.replace(/\/+$/, "")}/v1/ingest`;
     this._apiKey = opts.apiKey;
     this._serviceName = opts.serviceName;
     this._serviceVersion = SDK_VERSION;
     this._environment = opts.environment;
+    this._exportTimeoutMs = opts.exportTimeoutMs ?? 30_000;
   }
 
   start(): void {
@@ -91,10 +95,13 @@ export class OtlpJsonExporter {
 
   enqueue(span: ExportableSpan): void {
     if (this._queue.length >= this._maxQueueSize) {
-      // Drop oldest to make room (same as bounded queue)
+      log.warn(
+        `export queue full (${this._maxQueueSize}) - dropping oldest span`,
+      );
       this._queue.shift();
     }
     this._queue.push(span);
+    log.debug(`enqueued span "${span.name}" (queue: ${this._queue.length})`);
   }
 
   /**
@@ -103,6 +110,7 @@ export class OtlpJsonExporter {
    */
   async shutdown(): Promise<void> {
     if (this._shutdownPromise) return this._shutdownPromise;
+    log.debug("shutting down exporter...");
     this._shutdownPromise = this._shutdownInternal();
     return this._shutdownPromise;
   }
@@ -113,6 +121,7 @@ export class OtlpJsonExporter {
       this._timer = undefined;
     }
     await this._flush();
+    log.debug("exporter shutdown complete");
   }
 
   private async _flush(): Promise<void> {
@@ -120,6 +129,7 @@ export class OtlpJsonExporter {
 
     // Drain up to maxBatchSize
     const batch = this._queue.splice(0, this._maxBatchSize);
+    log.debug(`flushing ${batch.length} span(s) to ${this._endpoint}`);
     const otlpSpans = batch.map((s) => this._convertSpan(s));
 
     const request: OtlpRequest = {
@@ -150,12 +160,18 @@ export class OtlpJsonExporter {
           "x-tracentic-api-key": this._apiKey,
         },
         body: JSON.stringify(request),
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(this._exportTimeoutMs),
       });
-      // Drain response body to release the connection
-      await response.text();
-    } catch {
-      // Fire-and-forget - export failures are silently ignored
+      const body = await response.text();
+      if (!response.ok) {
+        log.warn(
+          `export failed: ${response.status} ${response.statusText} - ${body}`,
+        );
+      } else {
+        log.debug(`export succeeded: ${response.status} (${batch.length} spans)`);
+      }
+    } catch (err) {
+      log.warn(`export error: ${err}`);
     }
 
     // If there are still items in the queue, flush again

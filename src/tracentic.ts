@@ -5,6 +5,7 @@ import { AttributeLimits } from "./options.js";
 import { TracenticGlobalContext } from "./global-context.js";
 import { AttributeMerger } from "./attribute-merger.js";
 import { OtlpJsonExporter, type ExportableSpan } from "./exporter.js";
+import * as log from "./logger.js";
 
 /**
  * Public interface for the Tracentic SDK.
@@ -257,8 +258,8 @@ export class TracenticClient implements ITracentic {
   private _warnMissingPricing(model: string): void {
     if (this._pricingWarned.has(model)) return;
     this._pricingWarned.add(model);
-    console.warn(
-      `[tracentic] No customPricing entry for model "${model}" - llm.cost.total_usd will be omitted. ` +
+    log.warn(
+      `No customPricing entry for model "${model}" - llm.cost.total_usd will be omitted. ` +
         `Pass customPricing to createTracentic() to enable cost tracking.`,
     );
   }
@@ -302,6 +303,11 @@ function buildSpanName(
  * ```
  */
 export function createTracentic(options: TracenticOptions = {}): ITracentic {
+  if (options.debug) {
+    log.setDebug(true);
+    log.debug("debug logging enabled");
+  }
+
   const resolved: ResolvedOptions = {
     serviceName: options.serviceName ?? "unknown-service",
     endpoint: options.endpoint ?? "https://tracentic.dev",
@@ -330,10 +336,11 @@ export function createTracentic(options: TracenticOptions = {}): ITracentic {
       apiKey: options.apiKey,
       serviceName: resolved.serviceName,
       environment: resolved.environment,
+      exportTimeoutMs: options.exportTimeoutMs,
     });
   } else {
-    console.info(
-      "[tracentic] No apiKey provided - spans will be created locally but " +
+    log.info(
+      "No apiKey provided - spans will be created locally but " +
         "not exported. Pass apiKey to createTracentic() to send spans to Tracentic.",
     );
   }

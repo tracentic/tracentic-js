@@ -281,6 +281,50 @@ For AWS Lambda specifically, calling `shutdown()` in `finally` flushes synchrono
 | `customPricing`    | `undefined`               | Model pricing for cost calculation                                                                                            |
 | `globalAttributes` | `undefined`               | Static attributes on every span                                                                                               |
 | `attributeLimits`  | platform defaults         | Limits on attribute count, key/value length                                                                                   |
+| `exportTimeoutMs`  | `30000`                   | Per-request timeout in milliseconds for OTLP exports                                                                          |
+| `debug`            | `false`                   | Enable verbose diagnostic logging (see [Debugging](#debugging) below)                                                         |
+
+## Debugging
+
+By default the SDK only logs warnings and errors - export failures, queue overflow, and missing pricing entries. To see the full lifecycle of spans (enqueue, flush, export success, shutdown), enable debug mode:
+
+```typescript
+const tracentic = createTracentic({
+  apiKey: "...",
+  serviceName: "my-service",
+  debug: true,
+});
+```
+
+With `debug: true`, the SDK writes verbose output to `console.debug` prefixed with `[tracentic]`. Example output:
+
+```
+[tracentic] debug logging enabled
+[tracentic] enqueued span "llm.anthropic.chat" (queue: 1)
+[tracentic] flushing 1 span(s) to https://tracentic.dev/v1/ingest
+[tracentic] export succeeded: 200 (1 spans)
+[tracentic] shutting down exporter...
+[tracentic] exporter shutdown complete
+```
+
+Warnings are always emitted regardless of the debug flag:
+
+```
+[tracentic] export failed: 401 Unauthorized - {"error":"invalid api key"}
+[tracentic] export error: TypeError: fetch failed
+[tracentic] export queue full (512) - dropping oldest span
+```
+
+### Export timeout
+
+The `exportTimeoutMs` option controls the per-request timeout for OTLP exports (default: 30 seconds). If exports are timing out in your environment (e.g. CI runners, serverless cold starts), increase it:
+
+```typescript
+const tracentic = createTracentic({
+  apiKey: "...",
+  exportTimeoutMs: 60_000, // 60 seconds
+});
+```
 
 ## Development
 
